@@ -3,9 +3,19 @@ import numpy as np
 import imutils
 import math
 import time
+import RPi.GPIO as GPIO
+#MOTORES SETUP
+#GPIO.cleanup()
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18,GPIO.OUT) #IN1
+GPIO.setup(17,GPIO.OUT) #IN2S
 
-lowerBound=np.array([33,80,40])
-upperBound=np.array([102,255,255])
+GPIO.setup(23,GPIO.OUT) #IN3
+GPIO.setup(22,GPIO.OUT) #IN4
+
+lowerBound=np.array([29,85,6])
+upperBound=np.array([64,255,255])
 
 cam= cv2.VideoCapture(0)
 kernelOpen=np.ones((5,5))
@@ -15,6 +25,25 @@ xn = 0.112 #metros
 yn = 0.088
 zn = 0.23
 alturaCam = 0.20
+
+xl=list()
+yl=list()
+rl=list()
+
+def average(dispx,dispy,radius,s):
+        m=10
+        xl.append(dispx)
+        yl.append(dispy)
+        rl.append(radius)
+        if(len(xl)==m and len(yl)==m and len(rl)==m):
+            xm=sum(xl)/len(xl)
+            ym=sum(yl)/len(yl)
+            rm=sum(rl)/len(rl)
+            del yl[0:m]
+            del xl[0:m]
+            del rl[0:m]
+            return (print("ball# " + str(s) + " x= " + str(round(xm, 4)) + " y= "+ str(round(ym, 4)) + " radius= ",str(int(round(rm)))))
+        return
 
 #font=cv2.cv.InitFont(cv2.cv.CV_FONT_HERSHEY_SIMPLEX,2,0.5,0,3,1)
 
@@ -90,37 +119,68 @@ while True:
         dispx = round(xi*1000)/1000
         dispy = round(yi*1000)/1000
         dispz = round(zi*1000)/1000
-        dataStr = str(s)+"( "+str(dispx)+", "+str(dispy)+", "+str(dispz)+")"
-        cv2.putText(img, dataStr, (x-20, y+10), 0, 1, (0, 0, 0), 2, cv2.LINE_AA)
         
-        print("ball# "+ str(s) + " x= "+ str(dispx) + " y= " + str(dispy) +
-              " radius= " + str(int(round(radius))))
+        
+        
+        dataStr = str(s)+"( "+str(dispx)+", "+str(dispy)+", "+str(dispz)+")"
+        cv2.putText(img, dataStr, (x, y), 0, 1, (0, 0, 0), 2, cv2.LINE_AA)
+        
+        
+        average(dispx,dispy,radius,s)
+        #print("ball# "+ str(s) + " x= "+ str(dispx) + " y= " + str(dispy) +
+        #      " radius= " + str(int(round(radius))))
         
         #print("ball# "+ str(s) + " x= "+ str(int(round(xi))) + " y= " + str(int(round(yi))) +
            #   " radius= " + str(int(round(radius))))
         #print("ball# "+ str(len(conts)-1) + " x= "+ str(x) + " y= " + str(y))
         
-        if(k1=<2):
+        if(k1<=2):
             if(dispx > 0):
-                #GPIO.output(23, GPIO.HIGH) derecha
-                #GPIO.output(24, GPIO.LOW) izquierda
-                #time.sleep(.05)
-                #GPIO.output(23, GPIO.LOW)
-                #GPIO.output(24, GPIO.LOW) 
+                GPIO.output(18, GPIO.HIGH) #M1 in1
+                GPIO.output(17, GPIO.LOW)  #M1 in2
+                GPIO.output(23, GPIO.LOW)  #M2 in3
+                GPIO.output(22, GPIO.HIGH) #M2 in4
+                time.sleep(.05)
+                GPIO.output(18, GPIO.LOW)  
+                GPIO.output(17, GPIO.LOW)
+                GPIO.output(23, GPIO.LOW)
+                GPIO.output(22, GPIO.LOW)
                 if(dispx<0.3):
-                    #GPIO.output(23, GPIO.HIGH) derecha SLOWER
-                    #GPIO.output(24, GPIO.LOW) izquierda 
-                    #time.sleep(.05)
-                    
-            if(dispx < 0)
-                #GPIO.output(23, GPIO.LOW) derecha
-                #GPIO.output(24, GPIO.HIGH) izquierda
-                
+                    GPIO.output(18, GPIO.HIGH) #M1 in1
+                    GPIO.output(17, GPIO.LOW)  #M1 in2
+                    GPIO.output(23, GPIO.LOW)  #M2 in3
+                    GPIO.output(22, GPIO.HIGH) #M2 in4
+                    time.sleep(.05)
+                    GPIO.output(18, GPIO.LOW)  
+                    GPIO.output(17, GPIO.LOW)
+                    GPIO.output(23, GPIO.LOW)
+                    GPIO.output(22, GPIO.LOW)
+            if(dispx < 0):
+                GPIO.output(18, GPIO.LOW)   #M1 in1
+                GPIO.output(17, GPIO.HIGH)  #M1 in2
+                GPIO.output(23, GPIO.HIGH)  #M2 in3
+                GPIO.output(22, GPIO.LOW)   #M2 in4
+                time.sleep(.05)
+                GPIO.output(18, GPIO.LOW)  
+                GPIO.output(17, GPIO.LOW)
+                GPIO.output(23, GPIO.LOW)
+                GPIO.output(22, GPIO.LOW)
+                if(dispx>-0.3):
+                    GPIO.output(18, GPIO.LOW)   #M1 in1
+                    GPIO.output(17, GPIO.HIGH)  #M1 in2
+                    GPIO.output(23, GPIO.HIGH)  #M2 in3
+                    GPIO.output(22, GPIO.LOW)   #M2 in4
+                    time.sleep(.02)
+                    GPIO.output(18, GPIO.LOW)  
+                    GPIO.output(17, GPIO.LOW)
+                    GPIO.output(23, GPIO.LOW)
+                    GPIO.output(22, GPIO.LOW)
             
             #GPIO.output(23, GPIO.HIGH) derecha
             #GPIO.output(24, GPIO.HIGH) izquierda
         
-        
+    
+    
     cv2.imshow("maskClose",maskClose)
     #cv2.imshow("maskOpen",maskOpen)
     #cv2.imshow("mask",mask)
