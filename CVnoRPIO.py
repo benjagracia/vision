@@ -17,9 +17,14 @@ upperBound = np.array([64, 255, 255])
 #lowerBound = np.array([29, 85, 6])
 #upperBound = np.array([64, 255, 255])
 # camera setup
-cam = cv2.VideoCapture(0)
+dispW=640
+dispH=480
+flip=2
+
+camSet='nvarguscamerasrc !  video/x-raw(memory:NVMM), width=1980, height=1080, format=NV12, framerate=59/1 ! nvvidconv flip-method='+str(flip)+' ! video/x-raw, width='+str(dispW)+', height='+str(dispH)+', format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
+cam = cv2.VideoCapture(camSet)
 # setting up kernel properties with matrices
-kernelOpen = np.ones((11, 11))
+kernelOpen = np.ones((5, 5))
 kernelClose = np.ones((21, 21))
 #kernelOpen = np.ones((20, 20))
 #kernelClose = np.ones((20, 20))
@@ -51,18 +56,11 @@ def average(dispx, dispy, s):
         return
     return
 
-'''def apply_color_overlay(imgHSV, intensity=0.5, blue=0, green=0, red=0):
-    imgHSV_h, imgHSV_w, imgHSV_c = imgHSV.shape
-    sepia_bgra = (blue, green, red, 1)
-    overlay = np.full((imgHSV_h, imgHSV_w, 4), sepia_bgra, dtype='uint8')
-    cv2.addWeighted(overlay, intensity, imgHSV, 1.0, 0, imgHSV)
-    return imgHSV'''
-
 # main
 while True:
     # camera setup
     ret, img = cam.read()
-    img = cv2.resize(img, (600, 500))  # resolution size
+    #img = cv2.resize(img, (600, 500))  # resolution size
     # native camera resolution
     xr = img.shape[1]
     yr = img.shape[0]
@@ -81,7 +79,7 @@ while True:
     maskClose = cv2.morphologyEx(maskOpen, cv2.MORPH_CLOSE, kernelClose)
     maskFinal = maskClose
     # quantity of contours from the final mask filter
-    conts, h = cv2.findContours(maskFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    img2, conts, h = cv2.findContours(maskFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     s = 0
     for i in range(len(conts)):
@@ -91,9 +89,9 @@ while True:
         # drawing perceived contours
         cv2.drawContours(img, conts, -1, (255, 0, 0), 3)
         # drawing the minimum possible rectangle
-        x, y, w, h = cv2.boundingRect(conts[0])
+        x, y, w, h = cv2.boundingRect(conts[i])
         # proceed only if minimum ball size threshold is met
-        if w > 10 and h > 10:
+        if w > 5 and h > 5:
             # draw a rectangle in the img to show it to the user
             cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
             # math for determining irl distance
@@ -141,12 +139,16 @@ while True:
                     # if the ball is in y positive but closer to the center, rotate slower to the right
                     if (dispx > -0.3):
                         print("rotating slowy left")
+        if cv2.waitKey(1)==ord('q'):
+            break
+    if cv2.waitKey(1)==ord('q'):
+        break
     cv2.imshow("maskClose", maskClose)
     #cv2.imshow("maskOpen",maskOpen)
     #cv2.imshow("mask",mask)
     cv2.imshow("cam", img)
     #cv2.imshow("median", median)
     #cv2.imshow("blurred", blurred)
-    cv2.imshow("imgHSV", imgHSV)
+    #cv2.imshow("imgHSV", imgHSV)
     #cv2.imshow("dilation", dilation)
     cv2.waitKey(10)
